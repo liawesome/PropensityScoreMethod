@@ -298,7 +298,18 @@ class Match:
 
                     savefig('propensity_{:03d}.jpg'.format(i))
 
+    plt.rcParams['figure.figsize'] = 8, 6
+    plt.rcParams['font.size'] = 12
 
+    sns.distplot(neg_pscore, label='control')
+    sns.distplot(pos_pscore, label='treatment')
+    plt.xlim(0, 1)
+    plt.title('Propensity Score Distribution of Control vs Treatment')
+    plt.ylabel('Density')
+    plt.xlabel('Scores')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 
