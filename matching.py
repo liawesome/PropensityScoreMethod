@@ -87,6 +87,13 @@ def t_test(covariates, groups):
     pvalues = round(pvalues, 3)
     return pd.DataFrame({'features': colnames, 'p-value': pvalues})
 
+def transform_data(df):
+    features = list(df.columns)
+    features.remove('treatment')
+    features.remove('propensity')
+    return features
+
+
 
 # use old_df: tab(dataframe with propensity score) , new_df:
 def standardized_diff(df):
@@ -227,6 +234,7 @@ class Match:
                         ttest= t_test(features, matched_df[i]['treatment'])
                         t.append(ttest)
                         print("The test result for two sample t-test %d" % t)
+                        print(t)
 
                     if 'rank' in test:
                         features = matched_df[i].columns.tolist()
@@ -234,7 +242,8 @@ class Match:
                         features.remove('propensity')
                         rtest = rank_test(features, matched_df[i]['treatment'])
                         rank.append(rtest)
-                        print("The test result for Wilcoxon-test %d" % rank)
+                        print("The test result for Wilcoxon-test:")
+                        print(rank)
 
                     if 'plot' in test:
                         fig, ax = plt.subplots(1, 2)
@@ -256,22 +265,23 @@ class Match:
                     smd_before = standardized_diff(old_df)
                     smd_after = standardized_diff(matched_df)
 
-                    print("standardized mean differences %.4f" % smd_before)
-                    print("standardized mean differences %.4f" % smd_after)
+                    print(smd_before)
+                    print(smd_after)
 
                 if 't' in test:
-                    features = matched_df.columns.tolist()
-                    features.remove('treatment')
-                    features.remove('propensity')
-                    ttest = t_test(features, matched_df['treatment'])
-                    print("The test result for two sample t-test %d" % ttest)
+                    features = transform_data(matched_df)
+                    ttest = t_test(matched_df[features], matched_df['treatment'])
+                    print("The test result for t-test:")
+                    print(ttest)
+
 
                 if 'rank' in test:
-                    features = matched_df.columns.tolist()
+                    features = list(matched_df.columns)
                     features.remove('treatment')
                     features.remove('propensity')
                     rtest = rank_test(features, matched_df['treatment'])
-                    print("The test result for Wilcoxon-test %d" % rtest)
+                    print("The test result for Wilcoxon-test:")
+                    print(rtest)
 
                 if 'plot' in test:
                     fig, ax = plt.subplots(1, 2)
