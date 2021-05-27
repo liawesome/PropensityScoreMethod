@@ -23,7 +23,7 @@ class PropensityScore:
         self.target_col = target_col
         self.target_var = target_var
 
-    def compute_score(self, method ='logistic', C=1e6, penalty=None, solver='lbfgs'):
+    def compute_score(self, method ='logistic', penalty=None, solver='lbfgs',max_iter =10000):
 
         # transform the group into binary 0/1
         self.df['treatment'] = self.df.apply(lambda x: 1 if x[self.target_col] == self.target_var else 0, axis=1)
@@ -47,17 +47,20 @@ class PropensityScore:
 
         # get propensity score
         if method == 'logistic':
-            logistic = LogisticRegression(C=C, penalty=penalty, solver=solver)
+            logistic = LogisticRegression(penalty=penalty, solver=solver)
             propensity = logistic.fit(X_encoded,t).predict_proba(X_encoded)[:, 1]
             predictions_binary = logistic.fit(X_encoded, t).predict(X_encoded)
             # question!!!
-            X_encoded['propensity'] = propensity
+           # X_encoded['propensity'] = propensity
+            self.df['propensity']= propensity
 
         elif method == 'probit':
             covariates = sm.add_constant(X_encoded, prepend=False)
             probit = sm.Probit(t, covariates).fit(disp=False, warn_convergence=True)
             ps = probit.predict()
-            X_encoded['propensity'] = ps
+            #X_encoded['propensity'] = ps
+            self.df['propensity']= ps
+            
             predictions_binary = [0 if x < 0.5 else 1 for x in ps]
         else:
             raise ValueError('Invalid method')
@@ -66,9 +69,10 @@ class PropensityScore:
         print('Confusion matrix:\n{}\n'.format(metrics.confusion_matrix(t, predictions_binary)))
         print('F1 score is: {:.4f}'.format(metrics.f1_score(t, predictions_binary)))
 
-        X_encoded['treatment'] = t
+        #X_encoded['treatment'] = t
+        
 
-        return X_encoded
+        return self.df
         # return df containing propensity scores, treatment for each observation
 
 
