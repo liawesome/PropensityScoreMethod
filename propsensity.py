@@ -1,11 +1,16 @@
+# for logistic regression 
+
 import sklearn
-from sklearn.linear_model import LogisticRegression
+# from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn import metrics
 from sklearn.compose import ColumnTransformer
 import pandas as pd
 import statsmodels.api as sm
+from sklearn.ensemble import RandomForestClassifier
+
 from sklearn.linear_model import LogisticRegressionCV
+
 
 class PropensityScore:
 
@@ -23,7 +28,7 @@ class PropensityScore:
         self.target_col = target_col
         self.target_var = target_var
 
-    def compute_score(self, method ='logistic', penalty=None, solver='lbfgs',max_iter =10000):
+    def compute_score(self, method ='logistic'):
 
         # transform the group into binary 0/1
         self.df['treatment'] = self.df.apply(lambda x: 1 if x[self.target_col] == self.target_var else 0, axis=1)
@@ -33,17 +38,18 @@ class PropensityScore:
 
         t = self.df['treatment'].values # pass as 0/1 value
         columns = self.numer_columns + self.catg_columns
+        
         # transform categorical variable to dummy variable
         X = self.df[columns]
         X_encoded = pd.get_dummies(X, columns=self.catg_columns)
 
-        # standardise the numeric columns if necessary
-        # column_transformer = ColumnTransformer(
-        #     [('numerical', StandardScaler(), self.numer_columns)],
-        #     sparse_threshold=0,
-        #     remainder='passthrough'
-        # )
-        # X_encoded = column_transformer.fit_transform(X_encoded)
+#         standardise the numeric columns if necessary
+        column_transformer = ColumnTransformer(
+            [('numerical', StandardScaler(), self.numer_columns)],
+            sparse_threshold=0,
+            remainder='passthrough'
+        )
+        X_encoded = column_transformer.fit_transform(X_encoded)
 
         # get propensity score
         if method == 'logistic':
@@ -61,37 +67,37 @@ class PropensityScore:
             param_range = np.arange(1, 20, 1)
 
             # Calculate accuracy on training and test set using range of parameter values
-            train_scores, test_scores = validation_curve(RandomForestClassifier(class_weight={0:1,1:1}), 
-                                                         X_encoded, 
-                                                         t, 
-                                                         param_name="n_estimators", 
-                                                         param_range=param_range, cv=5,
-                                                         scoring="accuracy")
+#             train_scores, test_scores = validation_curve(RandomForestClassifier(class_weight={0:1,1:1}), 
+#                                                          X_encoded, 
+#                                                          t, 
+#                                                          param_name="n_estimators", 
+#                                                          param_range=param_range, cv=5,
+#                                                          scoring="accuracy")
 
 
-            # Calculate mean and standard deviation for training set scores
-            train_mean = np.mean(train_scores, axis=1)
-            train_std = np.std(train_scores, axis=1)
+#             # Calculate mean and standard deviation for training set scores
+#             train_mean = np.mean(train_scores, axis=1)
+#             train_std = np.std(train_scores, axis=1)
 
-            # Calculate mean and standard deviation for test set scores
-            test_mean = np.mean(test_scores, axis=1)
-            test_std = np.std(test_scores, axis=1)
+#             # Calculate mean and standard deviation for test set scores
+#             test_mean = np.mean(test_scores, axis=1)
+#             test_std = np.std(test_scores, axis=1)
 
-            # Plot mean accuracy scores for training and test sets
-            plt.plot(param_range, train_mean, label="Training score", color="blue")
-            plt.plot(param_range, test_mean, label="Cross-validation score", color="orange")
+#             # Plot mean accuracy scores for training and test sets
+#             plt.plot(param_range, train_mean, label="Training score", color="blue")
+#             plt.plot(param_range, test_mean, label="Cross-validation score", color="orange")
 
             # Plot accurancy bands for training and test sets
 
-            # Create plot
-            plt.title("Validation Curve With Random Forest")
-            plt.xlabel("Number Of Trees")
-            plt.ylabel("Accuracy Score")
-            plt.tight_layout()
-            plt.legend(loc="best")
-            plt.show()
-            X['propensity']= propensity
-            X['treatment']= self.df['treatment']
+#             # Create plot
+#             plt.title("Validation Curve With Random Forest")
+#             plt.xlabel("Number Of Trees")
+#             plt.ylabel("Accuracy Score")
+#             plt.tight_layout()
+#             plt.legend(loc="best")
+#             plt.show()
+#             X['propensity']= propensity
+#             X['treatment']= self.df['treatment']
         
         else:
             raise ValueError('Invalid method')
@@ -103,9 +109,3 @@ class PropensityScore:
 
         return X
         # return df containing propensity scores, treatment for each observation
-
-
-
-
-
-
