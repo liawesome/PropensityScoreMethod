@@ -5,7 +5,7 @@ from sklearn import metrics
 from sklearn.compose import ColumnTransformer
 import pandas as pd
 import statsmodels.api as sm
-
+from sklearn.linear_model import LogisticRegressionCV
 
 class PropensityScore:
 
@@ -47,21 +47,52 @@ class PropensityScore:
 
         # get propensity score
         if method == 'logistic':
-            logistic = LogisticRegression(penalty=penalty, solver=solver)
-            propensity = logistic.fit(X_encoded,t).predict_proba(X_encoded)[:, 1]
-            predictions_binary = logistic.fit(X_encoded, t).predict(X_encoded)
-            # question!!!
-           # X_encoded['propensity'] = propensity
-            self.df['propensity']= propensity
+            lr = LogisticRegressionCV()
+            propensity = lr.fit(X_encoded,t).predict_proba(X_encoded)[:, 1]
+            predictions_binary = lr.fit(X_encoded, t).predict(X_encoded)
+            X['propensity']= propensity
+            X['treatment']= self.df['treatment']
 
-        elif method == 'probit':
-            covariates = sm.add_constant(X_encoded, prepend=False)
-            probit = sm.Probit(t, covariates).fit(disp=False, warn_convergence=True)
-            ps = probit.predict()
-            #X_encoded['propensity'] = ps
-            self.df['propensity']= ps
+        elif method == 'rf':
+            rf = RandomForestClassifier(max_depth=10,class_weight={0:1,1:1})
+            propensity = rf.fit(X_encoded,t).predict_proba(X_encoded)[:, 1]
+            predictions_binary = rf.fit(X_encoded, t).predict(X_encoded)
             
-            predictions_binary = [0 if x < 0.5 else 1 for x in ps]
+            param_range = np.arange(1, 20, 1)
+
+            # Calculate accuracy on training and test set using range of parameter values
+            train_scores, test_scores = validation_curve(RandomForestClassifier(class_weight={0:1,1:1}), 
+                                                         X_encoded, 
+                                                         t, 
+                                                         param_name="n_estimators", 
+                                                         param_range=param_range, cv=5,
+                                                         scoring="accuracy")
+
+
+            # Calculate mean and standard deviation for training set scores
+            train_mean = np.mean(train_scores, axis=1)
+            train_std = np.std(train_scores, axis=1)
+
+            # Calculate mean and standard deviation for test set scores
+            test_mean = np.mean(test_scores, axis=1)
+            test_std = np.std(test_scores, axis=1)
+
+            # Plot mean accuracy scores for training and test sets
+            plt.plot(param_range, train_mean, label="Training score", color="blue")
+            plt.plot(param_range, test_mean, label="Cross-validation score", color="orange")
+
+            # Plot accurancy bands for training and test sets
+
+            # Create plot
+            plt.title("Validation Curve With Random Forest")
+            plt.xlabel("Number Of Trees")
+            plt.ylabel("Accuracy Score")
+            plt.tight_layout()
+            plt.legend(loc="best")
+            plt.show()
+            X['propensity']= propensity
+            X['treatment']= self.df['treatment']
+        
         else:
             raise ValueError('Invalid method')
 
@@ -69,10 +100,8 @@ class PropensityScore:
         print('Confusion matrix:\n{}\n'.format(metrics.confusion_matrix(t, predictions_binary)))
         print('F1 score is: {:.4f}'.format(metrics.f1_score(t, predictions_binary)))
 
-        #X_encoded['treatment'] = t
-        
 
-        return self.df
+        return X
         # return df containing propensity scores, treatment for each observation
 
 
