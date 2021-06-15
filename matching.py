@@ -225,12 +225,6 @@ def prep_plot(data, var,colname):
     ret.columns = [colname]
     return ret   
 
-def cramers_V(var1,var2) :
-    crosstab =np.array(pd.crosstab(var1,var2, rownames=None, colnames=None)) # Cross table building
-    stat = chi2_contingency(crosstab)[0] # Keeping of the test statistic of the Chi2 test
-    obs = np.sum(crosstab) # Number of observations
-    mini = min(crosstab.shape)-1 # Take the minimum value between the columns and the rows of the cross table
-    return (stat/(obs*mini))
 
 
 def plot_scores(old_df, match_df,args):
@@ -266,27 +260,34 @@ def plot_scores(old_df, match_df,args):
         ax[1].legend(loc='center left',bbox_to_anchor=(1, 0.5))
         fig.tight_layout()
         fig.show()
+        fig.tight_layout()
         fig.savefig("{}_comparison.png".format(arg))      
 
 # plot categorical variables       
 def plot_catg(old_df, matched_df, args):
     
-    for args in args:
+    for arg in args:
+        
+        res= old_df.groupby([arg,'treatment']).size()
+        tab = res / res.groupby(level=0).sum()
+        d = tab.reset_index(name='count')
+        
         fig, (ax1, ax2) =plt.subplots(1,2)
-        sns.countplot(x=args, hue="treatment", data=old_df,ax=ax1)
-        ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=9,rotation=40, ha="right")
+        d.pivot(arg, "treatment", "count").plot(kind='bar', ax =ax1)
+        plt.xlabel(arg) 
+        plt.ylabel('proportion')
         ax1.set_title('Before Matching')
         
-        ax2= sns.countplot(x=args, hue="treatment", data=matched_df,ax=ax2)
-        ax2.set_xticklabels(ax2.get_xticklabels(), fontsize=9,rotation=40, ha="right")
+        result= matched_df.groupby([arg,'treatment']).size()
+        tab = result / result.groupby(level=0).sum()
+        d = tab.reset_index(name='count')
+        
+        d.pivot(arg, "treatment", "count").plot(kind='bar',ax=ax2)
+        plt.xlabel(arg) 
+        plt.ylabel('proportion')
         ax2.set_title('After Matching')
         fig.tight_layout()
-        
-
-
-
-
-        
+       
         
 class Match:
         """
